@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zinc Data Warehouse: A PM's Guide | Zinc Work</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --zinc-teal: #00FFCE;
+            --zinc-dark: #000000;
+            --zinc-gray: #6C6C6C;
+            --zinc-peach: #F7E2DA;
+            --zinc-peach-light: #FFEBDE;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--zinc-peach);
+            color: var(--zinc-dark);
+            overflow: hidden;
+        }
+
+        .presentation { width: 100vw; height: 100vh; position: relative; }
+
+        .slide {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            padding: 60px 80px;
+            display: none;
+            flex-direction: column;
+            background: var(--zinc-peach);
+        }
+
+        .slide.active { display: flex; }
+
+        .slide-number {
+            position: absolute;
+            bottom: 30px; right: 40px;
+            font-size: 13px;
+            color: var(--zinc-gray);
+        }
+
+        .logo { position: absolute; top: 24px; left: 36px; }
+
+        h1 { font-size: 52px; font-weight: 700; margin-bottom: 16px; color: var(--zinc-dark); line-height: 1.15; }
+        h1 span { color: var(--zinc-teal); }
+        h2 { font-size: 36px; font-weight: 600; margin-bottom: 28px; color: var(--zinc-dark); }
+        h2 span { color: var(--zinc-teal); }
+        h3 { font-size: 18px; font-weight: 600; margin-bottom: 10px; color: var(--zinc-teal); }
+        h4 { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: var(--zinc-dark); }
+        p { font-size: 18px; line-height: 1.6; color: var(--zinc-gray); }
+        .subtitle { font-size: 22px; color: var(--zinc-gray); margin-bottom: 10px; }
+        .date-tag { font-size: 14px; color: var(--zinc-gray); margin-top: 8px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-top: 8px;
+            overflow: hidden;
+        }
+
+        /* Grids */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 22px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .card h4 { color: var(--zinc-teal); font-size: 14px; margin-bottom: 10px; }
+        .card ul { list-style: none; padding: 0; }
+        .card li {
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+            color: var(--zinc-gray);
+            line-height: 1.4;
+        }
+        .card li:last-child { border-bottom: none; }
+
+        /* Title / center */
+        .slide.center {
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 0;
+        }
+        .center-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding-bottom: 40px;
+        }
+
+        /* Flow diagram */
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 18px 0 12px;
+            flex-wrap: wrap;
+        }
+        .flow-step {
+            background: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--zinc-dark);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        .flow-step.warehouse {
+            background: var(--zinc-dark);
+            color: white;
+        }
+        .flow-step.sigma {
+            background: var(--zinc-teal);
+            color: var(--zinc-dark);
+        }
+        .flow-arrow { color: var(--zinc-gray); font-size: 18px; }
+
+        /* Workbook list */
+        .workbook-list { list-style: none; padding: 0; }
+        .workbook-item {
+            background: white;
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+        .workbook-num {
+            width: 28px; height: 28px;
+            background: var(--zinc-teal);
+            color: var(--zinc-dark);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .workbook-info { flex: 1; }
+        .workbook-name { font-weight: 600; font-size: 14px; color: var(--zinc-dark); margin-bottom: 2px; }
+        .workbook-desc { font-size: 12px; color: var(--zinc-gray); margin-bottom: 3px; }
+        .workbook-link a { font-size: 11px; color: var(--zinc-teal); text-decoration: none; word-break: break-all; }
+        .workbook-link a:hover { text-decoration: underline; }
+
+        /* Question grid */
+        .question-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .question-item {
+            background: white;
+            border-radius: 10px;
+            padding: 12px 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            font-size: 13px;
+            color: var(--zinc-dark);
+            line-height: 1.4;
+            border-left: 3px solid var(--zinc-teal);
+        }
+
+        .data-source-tag {
+            font-size: 11px;
+            color: var(--zinc-gray);
+            margin-top: 10px;
+            padding: 6px 12px;
+            background: white;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        /* Roadmap items */
+        .roadmap-item {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .roadmap-num {
+            width: 32px; height: 32px;
+            background: var(--zinc-dark);
+            color: white;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px;
+            flex-shrink: 0;
+        }
+        .roadmap-title { font-weight: 600; font-size: 14px; color: var(--zinc-dark); margin-bottom: 3px; }
+        .roadmap-title span { color: var(--zinc-teal); }
+        .roadmap-desc { font-size: 13px; color: var(--zinc-gray); line-height: 1.4; }
+
+        /* Help boxes */
+        .help-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 18px;
+            margin-top: 4px;
+        }
+        .help-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+        .help-icon { font-size: 22px; margin-bottom: 10px; }
+        .help-title { font-weight: 600; font-size: 14px; color: var(--zinc-dark); margin-bottom: 8px; }
+        .help-body { font-size: 12px; color: var(--zinc-gray); line-height: 1.5; }
+        .channel-tag {
+            display: inline-block;
+            background: var(--zinc-dark);
+            color: var(--zinc-teal);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin: 4px 0;
+        }
+
+        /* Takeaways */
+        .takeaway-list { list-style: none; padding: 0; margin-top: 8px; }
+        .takeaway-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 12px 18px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            font-size: 15px;
+            color: var(--zinc-dark);
+        }
+        .takeaway-check {
+            width: 22px; height: 22px;
+            background: var(--zinc-teal);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+            color: var(--zinc-dark);
+        }
+
+        /* Dict link */
+        .dict-link-box {
+            background: white;
+            border-radius: 12px;
+            padding: 18px 24px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            margin-top: 12px;
+        }
+        .dict-link-box .label { font-size: 12px; color: var(--zinc-gray); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .dict-link-box a { font-size: 13px; color: var(--zinc-teal); text-decoration: none; word-break: break-all; }
+        .dict-link-box a:hover { text-decoration: underline; }
+        .dict-tab-row { display: flex; gap: 10px; margin-top: 10px; }
+        .dict-tab {
+            background: var(--zinc-peach);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--zinc-dark);
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--zinc-teal);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 14px;
+        }
+
+        /* Footer */
+        .slide-footer {
+            position: absolute;
+            bottom: 30px;
+            left: 80px;
+            font-size: 12px;
+            color: var(--zinc-gray);
+        }
+
+        /* Nav dots */
+        .nav-dots {
+            position: absolute;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+        }
+        .nav-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .nav-dot.active { background: var(--zinc-teal); }
+    </style>
+</head>
+<body>
+<div class="presentation">
+
+<!-- SLIDE 1: TITLE -->
+<div class="slide center active">
+    <div class="center-content">
+        <p class="date-tag">June 2026</p>
+        <h1 style="margin-top:12px;">Zinc <span>Data Warehouse</span></h1>
+        <p class="subtitle" style="margin-top:10px;">A PM's Guide to Self-Serve Data</p>
+        <p style="font-size:14px; margin-top:24px; color:#aaa;">Use arrow keys or click the dots to navigate</p>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="120" height="41"><defs><linearGradient id="zg1" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg1)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">1 / 12</div>
+</div>
+
+<!-- SLIDE 2: WHAT IS THE DATA WAREHOUSE -->
+<div class="slide">
+    <h2>One place for <span>all Zinc data</span></h2>
+    <div class="content-area">
+        <p style="max-width:680px; font-size:16px; margin-bottom:18px;">The warehouse is a centralised PostgreSQL database (AWS, London region) that brings together data from every Zinc system. Instead of asking the data team for every number, you can explore and answer questions yourself. <strong>Sigma is your front door to it.</strong></p>
+
+        <div class="flow" style="margin-top: 16px;">
+            <div class="flow-step">App</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">HubSpot</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">Zendesk</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">Google Analytics</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step warehouse">Warehouse</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step sigma">Sigma</div>
+        </div>
+
+        <div class="grid-3" style="margin-top:20px;">
+            <div class="card">
+                <h4>Airbyte</h4>
+                <ul>
+                    <li>Automated ingestion pipeline</li>
+                    <li>Syncs from all source systems</li>
+                    <li>Runs on a schedule — data is near real-time</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Warehouse (PostgreSQL)</h4>
+                <ul>
+                    <li>Single source of truth</li>
+                    <li>Cleaned, joined, and modelled views</li>
+                    <li>18+ documented views and tables</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Sigma</h4>
+                <ul>
+                    <li>Interactive dashboards — no SQL needed</li>
+                    <li>Filter, drill, export</li>
+                    <li>Sign in with your Zinc Google account</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg2" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg2)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">2 / 12</div>
+</div>
+
+<!-- SLIDE 3: WHAT IS SIGMA -->
+<div class="slide">
+    <h2>Sigma: your <span>window into the data</span></h2>
+    <div class="content-area">
+        <div class="grid-2" style="margin-top:4px;">
+            <div>
+                <div class="card" style="margin-bottom:16px;">
+                    <h4>What Sigma is</h4>
+                    <ul>
+                        <li>Zinc's BI (Business Intelligence) tool — signed 2yr contract May 2026</li>
+                        <li>Live, interactive dashboards built on warehouse data</li>
+                        <li>Works like a spreadsheet — no SQL required</li>
+                        <li>Point-and-click filtering, drill-down, and pivot</li>
+                        <li>Export to CSV from any table</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>How to access</h4>
+                    <ul>
+                        <li>Go to <strong>app.sigmacomputing.com</strong></li>
+                        <li>Sign in with <strong>Google (your @zincwork.com email)</strong></li>
+                        <li>Ask Lex if you don't have access yet</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card" style="background: var(--zinc-dark); color: white;">
+                <h4 style="color: var(--zinc-teal); margin-bottom:14px;">What Sigma is not</h4>
+                <ul style="list-style: none; padding:0;">
+                    <li style="padding: 8px 0; border-bottom: 1px solid #333; font-size:13px; color:#aaa;">
+                        ❌ Not a replacement for Google Sheets (it's read-only on live data)
+                    </li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #333; font-size:13px; color:#aaa;">
+                        ❌ Not a place to edit or update records
+                    </li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #333; font-size:13px; color:#aaa;">
+                        ❌ Not a replacement for HubSpot for CRM activity
+                    </li>
+                    <li style="padding: 8px 0; font-size:13px; color:#aaa;">
+                        ✅ A place to explore, analyse, and understand what's happening in the business
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg3" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg3)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">3 / 12</div>
+</div>
+
+<!-- SLIDE 4: NAVIGATING SIGMA -->
+<div class="slide">
+    <h2>Finding your <span>way around</span></h2>
+    <div class="content-area">
+        <div class="grid-3" style="margin-top:4px;">
+            <div class="card">
+                <h4>Home screen</h4>
+                <ul>
+                    <li>Recent workbooks show automatically</li>
+                    <li>Star any workbook to add it to Favourites</li>
+                    <li>Use the search bar (top) to find workbooks by name</li>
+                    <li>Browse by folder to find team content</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Inside a workbook</h4>
+                <ul>
+                    <li>Page tabs at the bottom — like sheet tabs in Sheets</li>
+                    <li>Filter controls at the top of each page</li>
+                    <li>Click any chart element to cross-filter the page</li>
+                    <li>Hover over data points to see exact values</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Exporting data</h4>
+                <ul>
+                    <li>Click the three-dot menu (⋮) on any table</li>
+                    <li>Select <strong>Export → CSV</strong></li>
+                    <li>Applies your current filters — what you see is what you get</li>
+                    <li>Max ~1M rows per export</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="background: white; border-radius:10px; padding: 14px 18px; margin-top: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+            <div style="font-weight:600; font-size:13px; color: var(--zinc-teal); margin-bottom:8px;">Quick tips for filtering</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+                <div style="font-size:12px; color: var(--zinc-gray);">📅 Date range — most pages have a global date filter at the top. Always set this first.</div>
+                <div style="font-size:12px; color: var(--zinc-gray);">🏢 Company filter — filter to a single customer to answer account-specific questions.</div>
+                <div style="font-size:12px; color: var(--zinc-gray);">✅ Check type — filter to a specific check type (DBS, ID, Reference, etc.) to isolate that product.</div>
+            </div>
+        </div>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg4" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg4)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">4 / 12</div>
+</div>
+
+<!-- SLIDE 5: WORKBOOKS -->
+<div class="slide">
+    <h2>The workbooks you'll <span>use most</span></h2>
+    <div class="content-area">
+        <ul class="workbook-list" style="margin-top:4px;">
+            <li class="workbook-item">
+                <div class="workbook-num">1</div>
+                <div class="workbook-info">
+                    <div class="workbook-name">Traffic Lights</div>
+                    <div class="workbook-desc">Core billing and revenue view. Check cost per request, revenue by company, check type breakdown.</div>
+                    <div class="workbook-link"><a href="https://app.sigmacomputing.com/zincwork/workbook/Traffic-Lights-433WEmSdHenMR8CPC8ItMf" target="_blank">app.sigmacomputing.com/zincwork/workbook/Traffic-Lights-433WEmSdHenMR8CPC8ItMf</a></div>
+                </div>
+            </li>
+            <li class="workbook-item">
+                <div class="workbook-num">2</div>
+                <div class="workbook-info">
+                    <div class="workbook-name">Live Checks Data</div>
+                    <div class="workbook-desc">All checks in near-real time. Filter by company, check type, country, date range. Best starting point.</div>
+                    <div class="workbook-link"><a href="https://app.sigmacomputing.com/zincwork/workbook/Live-Checks-Data-54Cz51FN5knv5CpE57vG3a" target="_blank">app.sigmacomputing.com/zincwork/workbook/Live-Checks-Data-54Cz51FN5knv5CpE57vG3a</a></div>
+                </div>
+            </li>
+            <li class="workbook-item">
+                <div class="workbook-num">3</div>
+                <div class="workbook-info">
+                    <div class="workbook-name">Criminal Checks by Country</div>
+                    <div class="workbook-desc">Country-level breakdown of criminal check volumes. Wave 4 expansion planning tool.</div>
+                    <div class="workbook-link"><a href="https://app.sigmacomputing.com/zincwork/workbook/Criminal-Checks-by-Country-3Mtcq0yYKTnNTpUrnVblz4" target="_blank">app.sigmacomputing.com/zincwork/workbook/Criminal-Checks-by-Country-3Mtcq0yYKTnNTpUrnVblz4</a></div>
+                </div>
+            </li>
+            <li class="workbook-item">
+                <div class="workbook-num">4</div>
+                <div class="workbook-info">
+                    <div class="workbook-name">Renewals 2026</div>
+                    <div class="workbook-desc">Renewal pipeline, contract values, and renewal readiness by account.</div>
+                    <div class="workbook-link"><a href="https://app.sigmacomputing.com/zincwork/workbook/Renewals-2026-2s5nSMxJziSoC638p5HXTP" target="_blank">app.sigmacomputing.com/zincwork/workbook/Renewals-2026-2s5nSMxJziSoC638p5HXTP</a></div>
+                </div>
+            </li>
+            <li class="workbook-item">
+                <div class="workbook-num">5</div>
+                <div class="workbook-info">
+                    <div class="workbook-name">Autonomous Checks Analysis</div>
+                    <div class="workbook-desc">Autonomous (non-human-in-the-loop) check volume and trends by company and check type.</div>
+                    <div class="workbook-link"><a href="https://app.sigmacomputing.com/zincwork/workbook/Autonomous-Checks-Analysis-v1-5ICle1PEhTzfEJGJQIwl1r" target="_blank">app.sigmacomputing.com/zincwork/workbook/Autonomous-Checks-Analysis-v1-5ICle1PEhTzfEJGJQIwl1r</a></div>
+                </div>
+            </li>
+        </ul>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg5" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg5)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">5 / 12</div>
+</div>
+
+<!-- SLIDE 6: QUESTIONS — CHECKS -->
+<div class="slide">
+    <h2><span>Checks</span> domain</h2>
+    <div class="content-area">
+        <p class="section-label">Questions you can answer right now</p>
+        <div class="question-grid">
+            <div class="question-item">How many checks did [company] run last month?</div>
+            <div class="question-item">What check types does [company] use, and in what volumes?</div>
+            <div class="question-item">Which countries are we running criminal checks in?</div>
+            <div class="question-item">What is the check completion rate by check type?</div>
+            <div class="question-item">Which check types are growing fastest quarter-on-quarter?</div>
+            <div class="question-item">How does check volume vary by customer segment?</div>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:14px; flex-wrap:wrap;">
+            <div style="background:white; border-radius:8px; padding:10px 14px; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                <div style="font-size:11px; color:var(--zinc-teal); font-weight:600; margin-bottom:4px;">UNDERLYING DATA</div>
+                <div style="font-size:12px; color:var(--zinc-gray);">views.checks &nbsp;·&nbsp; views.check_numbers &nbsp;·&nbsp; views_dev.criminal_checks</div>
+            </div>
+            <div style="background:white; border-radius:8px; padding:10px 14px; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                <div style="font-size:11px; color:var(--zinc-teal); font-weight:600; margin-bottom:4px;">START WITH</div>
+                <div style="font-size:12px; color:var(--zinc-gray);">Live Checks Data &nbsp;·&nbsp; Criminal Checks by Country</div>
+            </div>
+        </div>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg6" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg6)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">6 / 12</div>
+</div>
+
+<!-- SLIDE 7: QUESTIONS — COMPANIES & REVENUE -->
+<div class="slide">
+    <h2><span>Companies &amp; Revenue</span> domain</h2>
+    <div class="content-area">
+        <p class="section-label">Questions you can answer right now</p>
+        <div class="question-grid">
+            <div class="question-item">What is the revenue per check for a given company?</div>
+            <div class="question-item">Which companies are our highest-volume customers?</div>
+            <div class="question-item">What does our deal pipeline look like by stage?</div>
+            <div class="question-item">What is the pricing for a given company and check type?</div>
+            <div class="question-item">Which companies are up for renewal and what is the contract value?</div>
+            <div class="question-item">What is the check cost trend over time?</div>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:14px; flex-wrap:wrap;">
+            <div style="background:white; border-radius:8px; padding:10px 14px; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                <div style="font-size:11px; color:var(--zinc-teal); font-weight:600; margin-bottom:4px;">UNDERLYING DATA</div>
+                <div style="font-size:12px; color:var(--zinc-gray);">views.company &nbsp;·&nbsp; views.deals &nbsp;·&nbsp; views.pricing &nbsp;·&nbsp; views.traffic_lights</div>
+            </div>
+            <div style="background:white; border-radius:8px; padding:10px 14px; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                <div style="font-size:11px; color:var(--zinc-teal); font-weight:600; margin-bottom:4px;">START WITH</div>
+                <div style="font-size:12px; color:var(--zinc-gray);">Traffic Lights &nbsp;·&nbsp; Renewals 2026</div>
+            </div>
+        </div>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg7" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg7)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">7 / 12</div>
+</div>
+
+<!-- SLIDE 8: QUESTIONS — MARKETING & WEB -->
+<div class="slide">
+    <h2><span>Marketing &amp; Web</span> domain</h2>
+    <div class="content-area">
+        <p class="section-label">Questions you can answer right now</p>
+        <div class="question-grid">
+            <div class="question-item">Which pages are driving the most organic traffic?</div>
+            <div class="question-item">What are our top search queries in Google Search Console?</div>
+            <div class="question-item">How is session volume trending by marketing channel?</div>
+            <div class="question-item">Which campaigns are driving the most web visits?</div>
+        </div>
+
+        <div style="background:white; border-radius:10px; padding:14px 18px; margin-top:14px; box-shadow:0 2px 6px rgba(0,0,0,0.06); border-left: 3px solid #f0b429;">
+            <div style="font-size:12px; font-weight:600; color:#b45309; margin-bottom:6px;">Note — dashboards in progress</div>
+            <div style="font-size:13px; color:var(--zinc-gray); line-height:1.5;">GA4 and GSC data is fully ingested into the warehouse and documented in the data dictionary. Sigma dashboards for these views are being built — raw data is queryable today but not yet visualised. Coming Q3 2026.</div>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:14px; flex-wrap:wrap;">
+            <div style="background:white; border-radius:8px; padding:10px 14px; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                <div style="font-size:11px; color:var(--zinc-teal); font-weight:600; margin-bottom:4px;">UNDERLYING DATA</div>
+                <div style="font-size:12px; color:var(--zinc-gray);">views.ga4_page_views &nbsp;·&nbsp; views.ga4_sessions_by_channel &nbsp;·&nbsp; views.gsc_search_by_query &nbsp;·&nbsp; views.gsc_search_by_page</div>
+            </div>
+        </div>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg8" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg8)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">8 / 12</div>
+</div>
+
+<!-- SLIDE 9: WHAT'S COMING -->
+<div class="slide">
+    <h2>On the <span>roadmap</span></h2>
+    <div class="content-area" style="padding-top:12px;">
+        <div class="roadmap-item">
+            <div class="roadmap-num">1</div>
+            <div>
+                <div class="roadmap-title">CPC Dashboard &nbsp;<span>— Q3 2026</span></div>
+                <div class="roadmap-desc">Conversations Per Check by company, check type, and Fini tag. Will show CS support volume per check, deflection rates (~18% → 12.3% with Fini), and drivers. Built on Zendesk + Fini data. Three views: AM-facing account list, product CPTC breakdown, and front sheet for leadership.</div>
+            </div>
+        </div>
+        <div class="roadmap-item">
+            <div class="roadmap-num">2</div>
+            <div>
+                <div class="roadmap-title">Leadership Forecasting Dashboard</div>
+                <div class="roadmap-desc">Pipeline health and forecast roll-up for the leadership team. In scoping phase — Sprint 1 covers data discovery and source alignment.</div>
+            </div>
+        </div>
+        <div class="roadmap-item">
+            <div class="roadmap-num">3</div>
+            <div>
+                <div class="roadmap-title">More Sigma workbooks</div>
+                <div class="roadmap-desc">GA4 and GSC marketing dashboards, full company health view (checks + CPC + renewals in one place), and AM-level performance dashboards.</div>
+            </div>
+        </div>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg9" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg9)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">9 / 12</div>
+</div>
+
+<!-- SLIDE 10: DATA DICTIONARY -->
+<div class="slide">
+    <h2>What's in <span>the warehouse</span></h2>
+    <div class="content-area" style="padding-top:8px;">
+        <p style="font-size:16px; max-width:680px; margin-bottom:16px;">Full documentation of every table and field in the warehouse lives in the <strong>Data Dictionary</strong>. Use it to understand what data is available before building a request or exploring in Sigma.</p>
+
+        <div class="dict-link-box">
+            <div class="label">Data Dictionary</div>
+            <a href="https://docs.google.com/spreadsheets/d/1-KDXRX-dJ9OfmO0ZHb2UMwTocmLDM90FmsZgpZAwr0s/edit" target="_blank">docs.google.com/spreadsheets/d/1-KDXRX-dJ9OfmO0ZHb2UMwTocmLDM90FmsZgpZAwr0s/edit</a>
+            <div class="dict-tab-row">
+                <div class="dict-tab">Objects tab</div>
+                <div class="dict-tab">Columns tab</div>
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:16px;">
+            <div class="card">
+                <h4>Objects tab</h4>
+                <ul>
+                    <li>Lists every view and table in the warehouse</li>
+                    <li>One row per object — name, schema, description</li>
+                    <li>Use this to find what exists before asking for data</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>Columns tab</h4>
+                <ul>
+                    <li>Field-level definitions for every column</li>
+                    <li>Data type, description, source system</li>
+                    <li>Use this to understand what a field actually means</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg10" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg10)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">10 / 12</div>
+</div>
+
+<!-- SLIDE 11: HOW TO GET HELP -->
+<div class="slide">
+    <h2>Getting <span>help</span> and requesting data</h2>
+    <div class="content-area" style="padding-top:12px;">
+        <div class="help-grid">
+            <div class="help-box">
+                <div class="help-icon">💬</div>
+                <div class="help-title">Got a question?</div>
+                <div class="help-body">
+                    Post in Slack:<br>
+                    <span class="channel-tag">#data-requests</span><br><br>
+                    Describe what you're trying to answer — not the SQL you want. Lex + Zhen triage daily and will either point you to an existing workbook or help you build the query.
+                </div>
+            </div>
+            <div class="help-box">
+                <div class="help-icon">🐛</div>
+                <div class="help-title">Found a discrepancy?</div>
+                <div class="help-body">
+                    If numbers don't match what you expect, log it in <span class="channel-tag">#data-requests</span> with:<br><br>
+                    <strong>What</strong> you were looking at<br>
+                    <strong>What</strong> you expected to see<br>
+                    <strong>What</strong> you actually saw<br><br>
+                    Include a screenshot if you can.
+                </div>
+            </div>
+            <div class="help-box">
+                <div class="help-icon">🏗️</div>
+                <div class="help-title">Want something new built?</div>
+                <div class="help-body">
+                    Raise a GSD project request. New Sigma dashboards and warehouse views are scoped and prioritised through the standard GSD process.<br><br>
+                    The clearer your "what question am I trying to answer?" the faster it gets built.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg11" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg11)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">11 / 12</div>
+</div>
+
+<!-- SLIDE 12: KEY TAKEAWAYS -->
+<div class="slide">
+    <h2>Key <span>takeaways</span></h2>
+    <div class="content-area" style="padding-top:8px;">
+        <ul class="takeaway-list">
+            <li class="takeaway-item">
+                <div class="takeaway-check">✓</div>
+                The warehouse brings together all Zinc data (app, HubSpot, Zendesk, GA4) in one place
+            </li>
+            <li class="takeaway-item">
+                <div class="takeaway-check">✓</div>
+                Sigma is your self-serve front door — no SQL needed, sign in with your Zinc Google account
+            </li>
+            <li class="takeaway-item">
+                <div class="takeaway-check">✓</div>
+                Start with <strong>Traffic Lights</strong> (revenue) and <strong>Live Checks Data</strong> (check volume)
+            </li>
+            <li class="takeaway-item">
+                <div class="takeaway-check">✓</div>
+                The <strong>Data Dictionary</strong> tells you what data exists and what every field means
+            </li>
+            <li class="takeaway-item">
+                <div class="takeaway-check">✓</div>
+                Bring your questions to <strong>#data-requests</strong> in Slack — describe what you're trying to answer
+            </li>
+        </ul>
+    </div>
+    <div class="slide-footer">Questions? Lex Faraimo &nbsp;|&nbsp; lex.faraimo@zincwork.com</div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 975 330" width="110" height="37"><defs><linearGradient id="zg12" x1="2448.23" y1="-1225.9" x2="2688.74" y2="-1225.9" gradientTransform="translate(-1061.69 -2405.72) rotate(90)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00ffce"/><stop offset="1" stop-color="#0ee6bd"/></linearGradient></defs><rect width="975" height="330" rx="39.97" ry="39.97" fill="#000"/><path fill="#fff" d="M867.21,177.56h51.57c-8.24-28.23-39.82-45.02-85.02-45.02-23.25,0-44.66,4.96-60.3,13.95-18.2,10.47-27.82,26.14-27.82,45.29s8.7,34.38,25.87,44.54c15.29,9.05,36.81,13.83,62.25,13.83,57.75,0,77.55-24,84.31-39.77h-52.1c-7,8.13-18.27,12.25-33.52,12.25-22.81,0-36.97-11.82-36.97-30.85,0-9.9,3.97-18.15,11.49-23.86,6.67-5.07,15.87-7.86,25.92-7.86,16.51,0,30.11,6.98,34.32,17.49Z"/><polygon fill="#fff" points="318.42 201.75 318.42 245.79 490.72 245.79 490.72 214.33 373.26 214.33 490.72 127.16 490.72 83.12 321.45 83.12 320.65 114.58 435.52 114.58 318.42 201.75"/><path fill="#fff" d="M656.02,159.63c19.32,0,30.85,11.04,30.85,29.54v56.62h48.53l.43-61.88c.1-13.86-4.17-25.24-12.69-33.83-10.38-10.46-26.92-16.22-46.56-16.22-24.81,0-45,8.76-56.85,24.66l-1.96,2.63-5.83-23.79h-40.54v108.44h48.52v-50.5c0-22,13.83-35.66,36.1-35.66Z"/><rect fill="#fff" x="506.15" y="137.36" width="48.95" height="108.44"/><path fill="url(#zg12)" d="M269.42,217.91V107.63c0-3.57-1.9-6.87-4.99-8.65l-95.21-55.12c-3.1-1.79-6.92-1.79-10.02,0L63.98,98.97c-3.09,1.79-4.99,5.09-4.99,8.65v110.28c0,3.57,1.9,6.87,4.99,8.65l95.21,55.12c3.1,1.79,6.92,1.79,10.02,0l95.21-55.12c3.09-1.79,4.99-5.09,4.99-8.65Z"/><polygon points="148.75 91.91 107 116.24 107 133.18 140.53 113.61 140.7 113.78 114.89 161.12 114.89 179.04 172.1 145.83 172.26 146 127.38 209.78 127.38 230 245.75 161.29 227.83 150.93 161.41 189.89 161.25 189.73 203.33 127.42 188.21 118.54 136.59 148.63 136.42 148.46 163.39 100.46 148.75 91.91"/></svg></div>
+    <div class="slide-number">12 / 12</div>
+</div>
+
+<!-- NAV DOTS -->
+<div class="nav-dots">
+    <div class="nav-dot active" data-slide="0"></div>
+    <div class="nav-dot" data-slide="1"></div>
+    <div class="nav-dot" data-slide="2"></div>
+    <div class="nav-dot" data-slide="3"></div>
+    <div class="nav-dot" data-slide="4"></div>
+    <div class="nav-dot" data-slide="5"></div>
+    <div class="nav-dot" data-slide="6"></div>
+    <div class="nav-dot" data-slide="7"></div>
+    <div class="nav-dot" data-slide="8"></div>
+    <div class="nav-dot" data-slide="9"></div>
+    <div class="nav-dot" data-slide="10"></div>
+    <div class="nav-dot" data-slide="11"></div>
+</div>
+
+</div>
+<script>
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.nav-dot');
+    let current = 0;
+
+    function show(n) {
+        slides[current].classList.remove('active');
+        dots[current].classList.remove('active');
+        current = (n + slides.length) % slides.length;
+        slides[current].classList.add('active');
+        dots[current].classList.add('active');
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); show(current + 1); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); show(current - 1); }
+    });
+
+    dots.forEach(d => d.addEventListener('click', () => show(parseInt(d.dataset.slide))));
+
+    // Touch swipe
+    let touchX = 0;
+    document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
+    document.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - touchX;
+        if (Math.abs(dx) > 50) show(dx < 0 ? current + 1 : current - 1);
+    });
+</script>
+</body>
+</html>
